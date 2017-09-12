@@ -1,0 +1,125 @@
+alias physicalSP S0;
+alias sysCallNo S1;
+alias filename S2;
+
+alias i S3;
+
+alias basicBlock S4;
+
+alias flagDFL S5;
+
+alias flagFAT S6;
+
+physicalSP = ([PTBR + 2*(SP / 512)]) * 512 + (SP % 512);
+
+sysCallNo = [physicalSP - 1];
+
+filename = [physicalSP - 3];
+
+if( sysCallNo == 1 ) then
+
+
+		breakpoint;
+
+		i=0;
+		while(i < 512) do  // checking the FAT entry for a file with given filename
+		
+			if([FAT + i] == filename) then
+
+				[physicalSP - 2] = 0;   // success if file with given filename is found!!!
+				ireturn;
+			
+			endif;	
+			
+			i = i + 8;
+
+		endwhile;
+
+		breakpoint;
+
+		flagDFL = 1;
+
+		i=0;
+		while(i < 7*512) do    // checking in Disk Free List for a free space
+		
+			if([DISK_LIST + i] == 0) then  
+				
+				basicBlock = i;   // if found assign it as basic block of new file to be created and unset flag 
+				flagDFL = 0;
+				break;
+			
+			endif;
+
+			i = i + 1;
+		
+		endwhile;
+
+		breakpoint;
+
+		if(flagDFL == 1) then         // if flag is set => no free space so return failure -1
+			
+			[physicalSP - 2] = -1;
+			ireturn;
+		
+		endif;
+			
+		breakpoint;
+			
+		flagFAT = 1;
+
+		i=0;
+		while(i < 512) do  // find free entry in FAT by checking for entry with basic block value = -1
+		
+			if([FAT + i + 2] == -1) then
+			
+				flagFAT = 0;
+				[FAT + i] = filename;
+				[FAT + i + 1] = 0;
+				[FAT + i + 2] = basicBlock;
+				break;
+
+			endif;	
+			
+			i = i + 8;
+		
+		endwhile;
+
+		breakpoint;
+
+		if(flagFAT == 1) then
+			
+			[physicalSP - 2] = -1;
+			ireturn;
+		
+		endif;
+		
+	load(1,basicBlock);	 // load the new file created to scratchpad
+
+	i=0;
+	while(i < 256) do
+
+		[512 + i] = -1;
+
+		i = i + 1;
+
+	endwhile;	
+
+	breakpoint;
+
+	store(1,basicBlock);	 // store the modified new file from scratchpad back to its assigned basic block
+
+	[DISK_LIST+ basicBlock] = 1;
+
+	store(5,19);  // FAT stored back to disk
+
+	store(6,20);  //  Disk Free List stored back to disk 
+
+	[ physicalSP - 2 ] = 0;  
+
+	breakpoint;
+
+	ireturn;
+
+endif;
+
+

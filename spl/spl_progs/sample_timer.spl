@@ -1,0 +1,73 @@
+alias currentPID S0;
+currentPID = (PTBR - 1024) / 8;
+
+alias currentPCB S1;
+currentPCB = READY_LIST + 32 * currentPID;
+
+// [ currentPCB + 1 ] = 1; // Set STATE of current process to READY
+
+[ currentPCB + 2 ] = BP;
+[ currentPCB + 3 ] = SP - 1;
+
+alias physicalSP S2;
+physicalSP = ([PTBR + 2 * (SP / 512)] * 512) + (SP % 512); 
+    // calculating the physical addr. of IP of current process
+
+[ currentPCB + 4 ] = [ physicalSP ];
+	// Save IP of current process in the PCB from the stack
+
+[ currentPCB + 5 ] = PTBR; // Storing PTBR and PTLR of current 
+[ currentPCB + 6 ] = PTLR; // process 
+
+[ currentPCB + 7 ] = R0;   // Saving registers of current process
+[ currentPCB + 8 ] = R1;
+[ currentPCB + 9 ] = R2;
+[ currentPCB + 10] = R3;
+[ currentPCB + 11] = R4;
+[ currentPCB + 12] = R5;
+[ currentPCB + 13] = R6;
+[ currentPCB + 14] = R7;
+
+
+alias i S3;
+alias j S4;
+alias newPCB S5;
+i = currentPID + 1;
+j = 1 ;
+while (j <= 32) do
+	
+	if ([READY_LIST + i*32 + 1] == 1) then
+		newPCB = READY_LIST + i*32;
+		break;
+	endif;
+	
+	i = ((i + 1) % 32);	
+	j = j + 1;
+			
+endwhile;
+
+// [ newPCB + 1] = 2; // Set new PCB as running process
+BP = [ newPCB + 2 ];
+SP = [ newPCB + 3 ]; 
+
+PTBR = [ newPCB + 5 ];
+PTLR = [ newPCB + 6 ];
+
+R0 = [ newPCB + 7 ];
+R1 = [ newPCB + 8 ];
+R2 = [ newPCB + 9 ];
+R3 = [ newPCB + 10 ];
+R4 = [ newPCB + 11 ];
+R5 = [ newPCB + 12 ];
+R6 = [ newPCB + 13 ];
+R7 = [ newPCB + 14 ];
+
+
+
+SP = SP + 1;
+alias newphysicalSP S2;
+newphysicalSP = ([PTBR + 2 * (SP / 512)] * 512) + (SP % 512);
+[ newphysicalSP ] = [ newPCB + 4 ]; // Stores IP field value of PCB on the stack 
+
+
+ireturn;

@@ -1,0 +1,70 @@
+load (7,1);               //Loading the Exception handler
+load (8,2);
+
+load (5,19);              //Loading FAT
+load (6,20);              //Loading Disk Free List
+
+load (9,3);               //Loading the Timer routine
+load (10,4);
+
+load (11,5);              //Loading Interrupt 1 routine          
+load (12,6);
+
+load (13,7);              //Loading Interrupt 2 routine          
+load (14,8);
+
+load (15,9);              //Loading Interrupt 3 routine          
+load (16,10);
+
+load (17,11);             //Loading Interrupt 4 routine          
+load (18,12);
+
+load (23,17);             //Loading INterrupt 7 routine
+load (24,18);
+
+[READY_LIST + 0] = 0;
+
+load (25,21);             //Loading code blocks for init
+load (26,22);
+load (27,23);
+
+PTBR = PAGE_TABLE;        //Setting up page tables for init
+PTLR = 4;
+[PTBR + 0] = 25;
+[PTBR + 1] = "01";
+[PTBR + 2] = 26;
+[PTBR + 3] = "01";
+[PTBR + 4] = 27;
+[PTBR + 5] = "01";
+[PTBR + 6] = 28;
+[PTBR + 7] = "01";
+
+[READY_LIST + 1] = 2;
+
+alias i S1;
+
+alias counter S0;			
+counter = 0;
+while ( counter <  128) do			// 64 entries, each of size 2 words
+	[ FILE_TABLE + counter + 0] = -1;	// Set FAT Index to -1
+	[ FILE_TABLE + counter + 1] =  0;	// Set File Open Count to 0
+	counter = counter + 2;			// Move to next entry
+endwhile;	
+
+
+i = 15;
+
+while (i < 31) do
+
+	[READY_LIST + i] = -1;
+	i = i + 1;
+
+endwhile;	
+
+SP = 3*512;
+
+[28 * 512] = 0;
+
+breakpoint;
+
+ireturn;

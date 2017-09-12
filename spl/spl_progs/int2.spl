@@ -1,0 +1,207 @@
+alias PhysicalSP S0;
+alias sysCallNo S1;
+alias filename S2;
+
+alias i S3;
+
+alias flagFAT S4;
+
+alias FATindex S5;
+
+alias flagFileTable S6;
+
+alias FileTableFreeFlag S7;
+
+alias FILETABLEindex S8;
+
+alias PiD S9;
+
+alias FreePerProcFlag S10;
+
+alias PerprocIndex S11;
+
+PhysicalSP = ([PTBR + 2*(SP/512)])*512 + ( SP % 512 ) ;
+
+sysCallNo = [ PhysicalSP - 1 ];
+
+
+flagFAT = 1;
+
+i = 0;
+
+if (sysCallNo == 2) then
+
+	filename = [ PhysicalSP - 3 ];
+
+	while ( i < 64 ) do
+
+		if([ FAT + i*8 ] == filename ) then
+
+			flagFAT = 0;
+			FATindex = i;
+			break;
+
+		endif;
+
+		i = i + 1;	
+
+	endwhile;	
+
+	breakpoint;
+
+	if (flagFAT == 1) then
+
+	 	[ PhysicalSP - 2 ] = -1;
+	 	ireturn;
+
+	endif;
+
+	breakpoint;
+
+	flagFileTable = 1;
+
+	i = 0;
+	while ( i < 64 ) do
+
+		if ([ FILE_TABLE + 2*i ] == FATindex ) then
+
+			FILETABLEindex = i;
+			flagFileTable = 0;
+			break;
+
+		endif;
+
+		i = i + 1;
+
+	endwhile;
+
+	breakpoint;
+
+	FileTableFreeFlag = 1;
+
+	if ( flagFileTable == 1) then
+
+		i = 0;
+
+		while( i < 64 ) do
+
+			if( [ FILE_TABLE + 2*i ] == -1 ) then
+
+				FILETABLEindex = i;
+				FileTableFreeFlag = 0;
+				break;
+
+			endif;
+
+			i = i + 1;
+
+		endwhile;
+
+	endif;	
+
+	breakpoint;
+
+	if ( FileTableFreeFlag == 1 ) then
+
+			[ PhysicalSP - 2 ] = -1;
+			ireturn;
+
+	endif;	
+
+		breakpoint;
+        
+		PiD = ( PAGE_TABLE - PTBR ) / 8;
+
+		FreePerProcFlag = 1;
+		
+		i = 15;
+		while( i < 31) do
+
+			if ( [READY_LIST + PiD * 32 + i] == -1 ) then
+
+				PerprocIndex = i ;
+				FreePerProcFlag = 0;
+				break;
+
+			endif;
+		
+			i = i + 2;
+
+		endwhile;
+
+		breakpoint;
+
+		if ( FreePerProcFlag == 1 ) then
+
+			[ PhysicalSP - 2 ] = -1;
+			ireturn;
+
+		endif;
+
+		breakpoint;
+
+		[ READY_LIST + PiD*32 + PerprocIndex ] = FILETABLEindex;
+		[ READY_LIST + PiD*32 + PerprocIndex + 1 ] = 0;
+
+		breakpoint;
+
+		[FILE_TABLE + 2*FILETABLEindex] = FATindex;
+		[FILE_TABLE + 2*FILETABLEindex + 1 ]  = [FILE_TABLE + 2*FILETABLEindex + 1 ] + 1;
+
+		breakpoint;
+
+		[PhysicalSP - 2] = (PerprocIndex -15) /2;
+		ireturn;	 			
+
+endif;
+
+if (sysCallNo == 3) then
+
+	alias fileDescriptor S12;
+
+	alias currentPCB S15;
+
+	fileDescriptor = [ PhysicalSP - 3 ];
+
+	if (fileDescriptor > 7 || fileDescriptor < 0) then
+
+		[ PhysicalSP - 2 ] =-1;
+		ireturn;
+
+	endif;	
+
+	currentPCB = ((PAGE_TABLE - PTBR) / 8) + READY_LIST;
+
+	if([ currentPCB + 15 + 2*fileDescriptor ] == -1) then
+
+		[ PhysicalSP - 2 ] = -1;
+		ireturn;
+	
+	endif;	
+
+	FATindex = [ currentPCB + 15 + 2*fileDescriptor ];
+
+	[ FILE_TABLE + FATindex + 1 ] = [ FILE_TABLE + FATindex + 1 ] - 1;
+
+	if( [ FILE_TABLE + FATindex + 1 ] == 0) then
+
+		[ FILE_TABLE + FATindex ] = -1;
+
+	endif;
+
+	[ currentPCB + 15 + 2*fileDescriptor ] = -1;
+	[ currentPCB + 15 + 2*fileDescriptor + 1] = -1;
+
+	[ PhysicalSP - 2] = 0;
+	ireturn;		
+
+
+endif;	
+
+
+
+
+
+
+
+
