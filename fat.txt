@@ -30,9 +30,9 @@ myfile3.dat
 
 
 
--1
+myfile4.dat
 0
--1
+0
 
 
 

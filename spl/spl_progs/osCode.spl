@@ -65,6 +65,5 @@ SP = 3*512;
 
 [28 * 512] = 0;
 
-breakpoint;
 
 ireturn;

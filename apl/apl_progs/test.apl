@@ -6,10 +6,12 @@ enddecl
 integer main()
 {
 	status = Create("myfile4.dat");
-	a = Open("myfile4.dat");
-	b = Close(0);
 	print(status);
+	breakpoint;
+	a = Open("myfile4.dat");
 	print(a);
-	print(b);	
+	breakpoint;
+	b = Open("myfile4.dat");
+	breakpoint;
 	return 0;
 }

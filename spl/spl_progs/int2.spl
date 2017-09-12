@@ -29,13 +29,15 @@ flagFAT = 1;
 
 i = 0;
 
-if (sysCallNo == 2) then
+if (sysCallNo == 2) then     // OPEN-----------------------------------------------------------------------
 
 	filename = [ PhysicalSP - 3 ];
 
+	i = 0;
+
 	while ( i < 64 ) do
 
-		if([ FAT + i*8 ] == filename ) then
+		if( [ FAT + i*8 ] == filename ) then
 
 			flagFAT = 0;
 			FATindex = i;
@@ -47,17 +49,17 @@ if (sysCallNo == 2) then
 
 	endwhile;	
 
-	breakpoint;
+	 
 
-	if (flagFAT == 1) then
+	if (flagFAT == 1) then     
 
 	 	[ PhysicalSP - 2 ] = -1;
+	 	print("OpenErr1");
 	 	ireturn;
 
 	endif;
 
-	breakpoint;
-
+	
 	flagFileTable = 1;
 
 	i = 0;
@@ -75,11 +77,12 @@ if (sysCallNo == 2) then
 
 	endwhile;
 
-	breakpoint;
+	 
 
-	FileTableFreeFlag = 1;
 
 	if ( flagFileTable == 1) then
+
+			FileTableFreeFlag = 1;
 
 		i = 0;
 
@@ -99,25 +102,26 @@ if (sysCallNo == 2) then
 
 	endif;	
 
-	breakpoint;
+	 
 
 	if ( FileTableFreeFlag == 1 ) then
 
 			[ PhysicalSP - 2 ] = -1;
+	 		print("OpenErr2");      // No Free Space in SYS WiDE TAble
 			ireturn;
 
 	endif;	
 
-		breakpoint;
+		 
         
 		PiD = ( PAGE_TABLE - PTBR ) / 8;
 
 		FreePerProcFlag = 1;
 		
-		i = 15;
-		while( i < 31) do
+		i = 0;
+		while( i < 8) do
 
-			if ( [READY_LIST + PiD * 32 + i] == -1 ) then
+			if ( [READY_LIST + PiD * 32 + 15 + i*2] == -1 ) then
 
 				PerprocIndex = i ;
 				FreePerProcFlag = 0;
@@ -125,37 +129,38 @@ if (sysCallNo == 2) then
 
 			endif;
 		
-			i = i + 2;
+			i = i + 1;
 
 		endwhile;
 
-		breakpoint;
+		 
 
 		if ( FreePerProcFlag == 1 ) then
 
 			[ PhysicalSP - 2 ] = -1;
+	 		print("OpenErr3");
 			ireturn;
 
 		endif;
 
-		breakpoint;
+		 
 
-		[ READY_LIST + PiD*32 + PerprocIndex ] = FILETABLEindex;
-		[ READY_LIST + PiD*32 + PerprocIndex + 1 ] = 0;
+		[ READY_LIST + PiD*32 + 15 + 2*PerprocIndex ] = FILETABLEindex;
+		[ READY_LIST + PiD*32 + 15 + 2*PerprocIndex + 1 ] = 0;
 
-		breakpoint;
+		 
 
 		[FILE_TABLE + 2*FILETABLEindex] = FATindex;
 		[FILE_TABLE + 2*FILETABLEindex + 1 ]  = [FILE_TABLE + 2*FILETABLEindex + 1 ] + 1;
 
-		breakpoint;
+		 
 
-		[PhysicalSP - 2] = (PerprocIndex -15) /2;
+		[PhysicalSP - 2] = PerprocIndex;
 		ireturn;	 			
 
 endif;
 
-if (sysCallNo == 3) then
+if (sysCallNo == 3) then    // CLOSE  ---------------------------------------------------------------------------
 
 	alias fileDescriptor S12;
 
@@ -170,7 +175,7 @@ if (sysCallNo == 3) then
 
 	endif;	
 
-	currentPCB = ((PAGE_TABLE - PTBR) / 8) + READY_LIST;
+	currentPCB = ((PAGE_TABLE - PTBR) / 8)*32 + READY_LIST;
 
 	if([ currentPCB + 15 + 2*fileDescriptor ] == -1) then
 
@@ -181,11 +186,11 @@ if (sysCallNo == 3) then
 
 	FATindex = [ currentPCB + 15 + 2*fileDescriptor ];
 
-	[ FILE_TABLE + FATindex + 1 ] = [ FILE_TABLE + FATindex + 1 ] - 1;
+	[ FILE_TABLE + FATindex*2 + 1 ] = [ FILE_TABLE + FATindex*2 + 1 ] - 1;
 
-	if( [ FILE_TABLE + FATindex + 1 ] == 0) then
+	if( [ FILE_TABLE + FATindex*2 + 1 ] == 0) then
 
-		[ FILE_TABLE + FATindex ] = -1;
+		[ FILE_TABLE + FATindex*2 ] = -1;
 
 	endif;
 

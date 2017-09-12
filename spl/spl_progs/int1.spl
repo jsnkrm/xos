@@ -10,16 +10,24 @@ alias flagDFL S5;
 
 alias flagFAT S6;
 
+alias FileExistFlag S7;
+
+alias FATindex S8;
+
+alias j S9; 
+
+alias dataBLOCK S10;
+
 physicalSP = ([PTBR + 2*(SP / 512)]) * 512 + (SP % 512);
 
 sysCallNo = [physicalSP - 1];
 
 filename = [physicalSP - 3];
 
-if( sysCallNo == 1 ) then
+if( sysCallNo == 1 ) then // CREATE ------------------------------------------------------------------------------
 
 
-		breakpoint;
+		
 
 		i=0;
 		while(i < 512) do  // checking the FAT entry for a file with given filename
@@ -35,7 +43,7 @@ if( sysCallNo == 1 ) then
 
 		endwhile;
 
-		breakpoint;
+		
 
 		flagDFL = 1;
 
@@ -54,7 +62,7 @@ if( sysCallNo == 1 ) then
 		
 		endwhile;
 
-		breakpoint;
+		
 
 		if(flagDFL == 1) then         // if flag is set => no free space so return failure -1
 			
@@ -63,7 +71,7 @@ if( sysCallNo == 1 ) then
 		
 		endif;
 			
-		breakpoint;
+		
 			
 		flagFAT = 1;
 
@@ -84,7 +92,7 @@ if( sysCallNo == 1 ) then
 		
 		endwhile;
 
-		breakpoint;
+		
 
 		if(flagFAT == 1) then
 			
@@ -104,7 +112,7 @@ if( sysCallNo == 1 ) then
 
 	endwhile;	
 
-	breakpoint;
+	
 
 	store(1,basicBlock);	 // store the modified new file from scratchpad back to its assigned basic block
 
@@ -116,10 +124,123 @@ if( sysCallNo == 1 ) then
 
 	[ physicalSP - 2 ] = 0;  
 
-	breakpoint;
-
+	
+	//breakpoint;
 	ireturn;
-
+	
 endif;
 
+if( sysCallNo == 4 ) then  // DELETE ---------------------------------------------------------------------
 
+		FileExistFlag = 1;
+		
+		//breakpoint;
+
+		i=0;
+		while(i < 64) do  // checking the FAT entry for a file with given filename
+		
+			if([FAT + i*8] == filename) then
+
+				FATindex = i;
+				FileExistFlag = 0;
+				break;
+
+			endif;	
+			
+			i = i + 1;
+
+		endwhile;
+
+		//breakpoint;
+
+		if (FileExistFlag == 1) then
+
+			[ physicalSP - 2 ] = -1;
+			print ("DelNoName");
+			ireturn;
+
+		endif;
+
+		//breakpoint;
+
+		i = 0;
+		while ( i < 64 ) do
+
+			if( [FILE_TABLE + i*2] == FATindex ) then
+
+				[physicalSP - 2] = -1;
+				print("DelFilOp");
+				ireturn;
+
+			endif;	
+
+			i = i + 1;
+
+		endwhile;
+
+		//breakpoint;
+
+		basicBlock = [ FAT + FATindex*8 + 2];
+		
+		if(basicBlock<24 || basicBlock > 448) then   /// Invalid BASIC BLOCK
+
+				[physicalSP - 2] = -1;
+				print("DelInvBB");
+				ireturn;
+		endif;		
+
+		
+		i = 0;
+		j = 0;
+		while ( [SCRATCHPAD + i != -1] && i < 256) do
+			
+			load ( 1,basicBlock );
+			dataBLOCK = [ SCRATCHPAD + i ];
+			
+			if(dataBLOCK < 448 && dataBLOCK >24) then
+			
+				load ( 1 , dataBLOCK);
+				while( j < 512) do
+
+					[SCRATCHPAD + j] = "";
+					j = j + 1;
+
+				endwhile;	
+				[ DISK_LIST + dataBLOCK ] = 0;
+				store( 1, dataBLOCK );				
+
+			endif;	
+			j = 0;
+			i = i + 1;
+
+		endwhile;
+
+		//breakpoint;
+
+		load ( 1, basicBlock);
+		j = 0;
+		while( j < 256) do
+
+			[ SCRATCHPAD + j ] = "";
+
+			j = j + 1;
+		
+		endwhile;	 
+
+		store( 1 , basicBlock );
+
+		[DISK_LIST + basicBlock] = 0;
+
+		[FAT + FATindex*8] = -1;
+		[FAT + FATindex*8 + 1] = 0;
+		[FAT + FATindex*8 + 2] = -1;		 
+
+		store (5,19); // FAT stored back
+		store (6,20);  // Disk Free List stored back
+
+		[ physicalSP - 2 ] = 0;
+
+		//breakpoint;
+		ireturn; 
+
+endif;
