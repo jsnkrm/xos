@@ -14,7 +14,13 @@ alias FATindex S6;
 
 alias fileSize S7;
 
+alias wordRead S8;
 
+alias lSeekPos S9;
+
+alias basicBlock S10;
+
+alias dataBlock S11;
 
 physicalSP = ([PTBR + 2*(SP / 512)]) * 512 + (SP % 512);
 
@@ -24,7 +30,7 @@ if (sysCallNo == 6) then    //  SEEK-------------------------------------------S
 	
 	fileDescriptor = [physicalSP - 4];
 
-	if( fileDescriptor < 0 || fileDescriptor > 7 ) then
+	if( fileDescriptor < 0 || fileDescriptor > 7 ) then  // Validating fileDescriptor
 
 		[physicalSP - 2 ] = -1;
 
@@ -67,3 +73,78 @@ if (sysCallNo == 6) then    //  SEEK-------------------------------------------S
 	ireturn;
 
 endif;		
+
+if (sysCallNo == 7) then    //  READ-------------------------------------------READ-------------------------------------------------READ--------------------------
+
+	fileDescriptor = [physicalSP - 4];
+
+	if( fileDescriptor < 0 || fileDescriptor > 7 ) then  // Validating fileDescriptor
+
+		[physicalSP - 2 ] = -1;
+
+		ireturn;
+
+	endif;
+
+	wordRead = [ physicalSP - 3 ];
+
+	currentPCB = READY_LIST + ((PAGE_TABLE - PTBR) / 8) * 32 ;
+
+	if ( [ currentPCB + 15 + 2*fileDescriptor ] == -1 ) then
+
+		[physicalSP - 2 ] = -1;
+
+		ireturn;
+
+	else
+
+		fileTablePointer =  [ currentPCB + 15 + 2*fileDescriptor ] ;
+
+		lSeekPos = [ currentPCB + 15 + 2*fileDescriptor + 1 ] ;
+
+	endif;
+	
+	FATindex = [ FILE_TABLE + 2*fileTablePointer ];
+
+	basicBlock = [ FAT + FATindex*8 + 2 ];
+
+	load (1, basicBlock);
+
+	fileSize = [ FAT + FATindex*8 + 1 ];
+
+	if( lSeekPos == fileSize) then
+
+		[physicalSP - 2 ] = -1;
+
+		ireturn;
+
+	endif;	
+	
+	dataBlock = [ SCRATCHPAD + (lSeekPos/512) ];
+
+	if(dataBlock == -1) then
+
+		[physicalSP - 2 ] = -1;
+
+		ireturn;
+
+	endif;
+
+	load(1, dataBlock);
+
+	wordRead = [ SCRATCHPAD + (lSeekPos % 512) ];
+
+	[ physicalSP - 3 ] = wordRead;
+
+	[ currentPCB + 15 + fileDescriptor*2 + 1 ] = [ currentPCB + 15 + fileDescriptor*2 + 1 ] + 1;
+
+	[ physicalSP - 2 ] = 0;
+
+	ireturn;
+
+endif;			
+
+
+
+
+
