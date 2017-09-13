@@ -1,0 +1,132 @@
+alias physicalSP S0;
+
+alias sysCallNo S1;
+
+alias fileDescriptor S2;
+
+alias wordToWrite S3;
+
+alias currentPCB S4;
+
+alias fileTablePointer S5;
+
+alias lSeekVal S6;
+
+alias i S7;
+
+alias lSeekPosition S8;
+
+alias freeDFflag S9;
+
+alias FATindex S10;
+
+alias basicBlock S11;
+
+alias dataBlock S12;
+
+physicalSP = ([PTBR + 2*(SP / 512)]) * 512 + (SP % 512);
+
+sysCallNo = [physicalSP - 1];
+
+if (sysCallNo == 5) then
+	
+	fileDescriptor = [physicalSP - 4];
+
+	if( fileDescriptor < 0 || fileDescriptor > 7 ) then
+
+		[physicalSP - 2 ] = -1;
+
+		ireturn;
+
+	endif;
+
+	wordToWrite = [physicalSP - 3];
+
+	currentPCB = READY_LIST + ((PAGE_TABLE - PTBR) / 8)  * 32;
+
+	if( [currentPCB + 15 + 2*fileDescriptor] == -1) then
+
+		[physicalSP - 2 ] = -1;
+
+		ireturn;
+
+	else
+
+		fileTablePointer = 	[ currentPCB + 15 + 2*fileDescriptor ] ;
+
+		lSeekVal = [ currentPCB + 15 + 2*fileDescriptor + 1 ];
+
+	endif;
+	
+	FATindex = [ FILE_TABLE + 2*fileTablePointer ];
+
+	basicBlock = [ FAT + FATindex*8 + 2 ];
+
+	load(1, basicBlock);
+
+	dataBlock = [ SCRATCHPAD + (lSeekVal/512) ];
+
+	if ( dataBlock == -1 ) then
+
+		i = 24;
+
+		freeDFflag = 1;
+
+		while( i < 448 ) do
+
+			if ( [ DISK_LIST + i ] == 0 ) then
+
+				freeDFflag = 0;
+					
+				[ DISK_LIST + i ] = 1;
+				
+				[ SCRATCHPAD + (lSeekVal/512) ] = i;
+
+				dataBlock = i;	
+					
+				store(1, basicBlock);
+					
+				[ FAT + FATindex*8 + 1 ]  = [ FAT + FATindex*8 + 1 ] + 512;	
+					
+				store (5,19);
+					
+				store (6,20);
+
+				break;
+
+			endif;
+
+				i = i + 1;
+
+		endwhile;
+
+			if ( freeDFflag == 1 ) then
+
+				[physicalSP - 2 ] = -1;
+
+				ireturn;
+
+			endif;
+	endif;			
+
+	load ( 1, dataBlock );
+
+	lSeekPosition = ( lSeekVal % 512 );
+
+	[ SCRATCHPAD + lSeekPosition ] = wordToWrite;
+
+	if( dataBlock >24 && dataBlock < 448) then
+	
+		store ( 1, dataBlock );
+
+	else
+			print ("error2");	 
+	endif;	
+
+	[ currentPCB + 15 + 2*fileDescriptor + 1 ] = [ currentPCB + 15 + 2*fileDescriptor + 1 ] + 1;
+
+	[ physicalSP - 2 ] = 0;
+
+	ireturn;
+
+endif;

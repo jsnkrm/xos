@@ -6,4 +6,4 @@ load --int=7 ../spl/spl_progs/int7.xsm
 
 //
 
-load --init ../apl_progsl/apl_progs/test.xsm
+load --init ../apl/apl_progs/test.xsm

@@ -1,38 +1,38 @@
-myfile.dat
+-1
 0
-24
+-1
 
 
 
 
 
-myfile1.dat
+-1
 0
-25
+-1
 
 
 
 
 
-myfile2.dat
+-1
 0
-26
+-1
 
 
 
 
 
-myfile3.dat
+-1
 0
-27
+-1
 
 
 
 
 
-myfile4.dat
+-1
 0
-0
+-1
 
 
 
