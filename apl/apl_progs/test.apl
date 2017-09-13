@@ -10,14 +10,14 @@ integer main()
 	a = Create("myfile.dat");
 	print(a);
 	breakpoint;
-	b = Open("myfile.dat");
-	print(b);
-	breakpoint;
-	status = Write(0,"Hello");
-	print(status);
-	breakpoint;
-	status = Write(0,"123456789");
-	print(status);
+	//b = Open("myfile.dat");
+	//print(b);
+	//breakpoint;
+	//status = Write(0,"12345678910");
+	//print(status);
+	//breakpoint;
+	c = Seek(0,512);
+	print(c);
 	breakpoint;
 	return 0;
 }

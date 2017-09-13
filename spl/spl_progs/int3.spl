@@ -1,0 +1,69 @@
+alias physicalSP S0;
+
+alias sysCallNo S1;
+
+alias fileDescriptor S2;
+
+alias newLseek S3;
+
+alias currentPCB S4;
+
+alias fileTablePointer S5;
+
+alias FATindex S6;
+
+alias fileSize S7;
+
+
+
+physicalSP = ([PTBR + 2*(SP / 512)]) * 512 + (SP % 512);
+
+sysCallNo = [physicalSP - 1];
+
+if (sysCallNo == 6) then    //  SEEK-------------------------------------------SEEK-------------------------------------------------SEEK--------------------------
+	
+	fileDescriptor = [physicalSP - 4];
+
+	if( fileDescriptor < 0 || fileDescriptor > 7 ) then
+
+		[physicalSP - 2 ] = -1;
+
+		ireturn;
+
+	endif;
+
+	newLseek = [physicalSP - 3];
+
+	currentPCB = READY_LIST + ((PAGE_TABLE - PTBR) / 8)  * 32;
+
+	if( [currentPCB + 15 + 2*fileDescriptor] == -1) then
+
+		[physicalSP - 2 ] = -1;
+
+		ireturn;
+
+	else
+
+		fileTablePointer = 	[ currentPCB + 15 + 2*fileDescriptor ] ;
+		
+	endif;
+	
+	FATindex = [ FILE_TABLE + 2*fileTablePointer ];
+
+	fileSize = [ FAT + FATindex*8 + 1 ];
+
+	if(newLseek < 0 || newLseek > fileSize)	then
+
+		[physicalSP - 2 ] = -1;
+
+		ireturn;
+
+	endif;
+
+	[ currentPCB + 15 + 2*fileDescriptor + 1 ] = newLseek;
+
+	[ physicalSP - 2 ] = 0;
+
+	ireturn;
+
+endif;		
