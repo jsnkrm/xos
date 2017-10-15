@@ -175,7 +175,7 @@ if (sysCallNo == 3) then    // CLOSE  ------------------------------------------
 
 	endif;	
 
-	currentPCB = ((PAGE_TABLE - PTBR) / 8)*32 + READY_LIST;
+	currentPCB = ((PTBR - PAGE_TABLE ) / 8)*32 + READY_LIST;
 
 	if([ currentPCB + 15 + 2*fileDescriptor ] == -1) then
 

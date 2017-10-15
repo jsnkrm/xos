@@ -40,7 +40,7 @@ if (sysCallNo == 6) then    //  SEEK-------------------------------------------S
 
 	newLseek = [physicalSP - 3];
 
-	currentPCB = READY_LIST + ((PAGE_TABLE - PTBR) / 8)  * 32;
+	currentPCB = READY_LIST + (( PTBR - PAGE_TABLE ) / 8)  * 32;
 
 	if( [currentPCB + 15 + 2*fileDescriptor] == -1) then
 

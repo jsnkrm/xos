@@ -1,0 +1,236 @@
+alias physicalSP S0;
+
+alias CHILDphysicalSP S5;
+
+alias sysCallNo S1;
+
+alias i S2;
+
+alias childPTBR S6;
+
+alias freePCBindex S3;
+
+alias flag S4;
+
+alias ParentPCB S7;
+
+alias count S8;
+
+alias j S9;
+
+alias k S10;
+
+breakpoint;
+
+physicalSP = ([PTBR + 2*(SP / 512)]) * 512 + (SP % 512);
+
+sysCallNo = [physicalSP - 1];
+
+ParentPCB = ((PTBR - PAGE_TABLE ) / 8)*32 + READY_LIST;
+
+
+
+if (sysCallNo == 8) then //-------------FORK-----------------------FORK-----------------------------------------------
+
+	i = 0;
+	flag = 1;
+
+	while( i < 32) do
+
+		if( [ READY_LIST + i*32 + 1 ] == 0 ) then		
+
+			freePCBindex = i;
+			flag = 0;
+			break;
+
+		endif;	
+
+		i = i + 1;
+
+	endwhile;
+
+	breakpoint;	
+
+	if ( flag == 1 ) then
+
+		[ physicalSP - 2 ] = -1;
+		ireturn;
+
+	endif;
+
+	breakpoint;
+
+	[ READY_LIST + 32*freePCBindex ] = freePCBindex;
+
+	count = 0;
+	i = 0;
+
+	while( i < 4) do
+
+		if( [ PTBR + 2*i + 1] == "01" || [ PTBR + 2*i + 1] == "11" ) then
+
+			count = count + 1;
+
+		endif;
+
+		i = i + 1;
+		
+	endwhile;
+
+	breakpoint;
+
+	childPTBR = PAGE_TABLE + freePCBindex * 8;
+
+	
+	flag = 1;
+
+	i = 29;
+
+	while (i < 64) do  
+
+		if( [ MEM_LIST + i ] == 0 ) then
+			
+			count = count - 1;
+
+		endif;	  
+
+		if ( count <= 0 ) then
+
+				flag = 0;
+				break;
+		endif;		
+
+		i = i + 1;
+
+	endwhile;	
+
+	breakpoint;
+			
+	if(flag == 1) then		
+
+		[ physicalSP - 2 ] = -1;
+		ireturn;
+
+	endif;
+
+	breakpoint;
+
+	i = 0;
+
+	while(i < 8) do
+
+		[READY_LIST + 32 * freePCBindex + 15 + 2*i] = [ParentPCB + 15 + 2*i];
+
+		[READY_LIST + 32 * freePCBindex + 15 + 2*i + 1] = [ParentPCB + 15 + 2*i + 1];
+
+		if( [ ParentPCB + 15 + 2*i ] != -1 ) then
+
+			[ FILE_TABLE + 2 * [ParentPCB + 15 + 2*i] + 1 ] = [ FILE_TABLE + 2 * [ParentPCB + 15 + 2*i] + 1 ] + 1;
+
+		endif;	
+
+
+		i = i + 1;
+
+	endwhile;	
+
+	breakpoint;
+
+	i = 0;
+
+	while( i < 4) do
+
+		[ childPTBR + 2*i ] = [ PTBR + 2*i ];
+
+		[ childPTBR + 2*i + 1 ] = [ PTBR + 2*i + 1 ];
+
+		i = i + 1;
+
+	endwhile;	
+
+	breakpoint;
+
+	i = 0;
+
+	j = 0;
+
+	k = 0;
+
+	while (i < 64 && j<4) do  
+
+		if( [ PTBR + 2*j + 1] == "01" || [ PTBR + 2*j + 1] == "11" ) then
+
+				if( [ MEM_LIST + i ] == 0 ) then
+	
+				
+ 					[ MEM_LIST + i ] = 1;
+					while (k < 512) do
+
+						[ i*512 + k ] = [ [PTBR + 2*j] * 512 + k ];
+
+						k = k + 1;
+
+					endwhile;
+
+					k = 0;
+					
+					
+
+					[childPTBR + 2*j ] = i;
+					j = j + 1;
+
+				endif;
+
+		endif;
+
+		i = i + 1;
+
+	endwhile;
+
+	breakpoint;
+
+
+	[READY_LIST + 32 * freePCBindex + 1] = 1;											
+
+	[READY_LIST + 32 * freePCBindex + 2] = BP;
+
+	[READY_LIST + 32 * freePCBindex + 3] =  SP - 1 ;
+
+	[READY_LIST + 32 * freePCBindex + 4] = [ physicalSP ];
+
+	[READY_LIST + 32 * freePCBindex + 5] = childPTBR;
+
+	[READY_LIST + 32 * freePCBindex + 6] = PTLR;
+
+	[READY_LIST + 32 * freePCBindex + 7 ] = R0;
+
+	[READY_LIST + 32 * freePCBindex + 8 ] = R1;
+
+	[READY_LIST + 32 * freePCBindex + 9 ] = R2;
+
+	[READY_LIST + 32 * freePCBindex + 10 ] = R3;
+
+	[READY_LIST + 32 * freePCBindex + 11 ] = R4;
+
+	[READY_LIST + 32 * freePCBindex + 12 ] = R5;
+
+	[READY_LIST + 32 * freePCBindex + 13 ] = R6;
+
+	[READY_LIST + 32 * freePCBindex + 14 ] = R7;
+
+	[physicalSP - 2] = freePCBindex;
+
+	i = SP - 1;
+
+	CHILDphysicalSP = ([childPTBR + 2*( i / 512 )]) * 512 + (i % 512);
+
+	[CHILDphysicalSP - 1] = -2;
+
+	breakpoint;
+
+	ireturn;
+
+endif;
+	
+
+

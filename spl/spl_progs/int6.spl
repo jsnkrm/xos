@@ -1,0 +1,293 @@
+alias physicalSP S0;
+
+alias FATindex S5;
+
+alias sysCallNo S1;
+
+alias i S2;
+
+alias filename S6;
+
+alias freePCBindex S3;
+
+alias k S4;
+
+alias currentPCB S7;
+
+alias count S8;
+
+alias j S9;
+
+alias newPCB S10;
+
+alias fileDescriptor S11;
+
+alias newphysicalSP S12;
+
+alias basciBlock S13;
+
+alias allocCount S14;
+
+
+physicalSP = ([PTBR + 2*(SP / 512)]) * 512 + (SP % 512);
+
+sysCallNo = [physicalSP - 1];
+
+filename = [physicalSP - 3];
+
+if (sysCallNo == 9) then  //------------------------------Exec---------------------------Exec----------------------------------------
+
+	breakpoint;
+
+	i = 0;
+
+	while ( i < 64 ) do
+
+		if( [ FAT + i*8 ] == filename ) then
+
+			FATindex = i;
+			break;
+
+		endif;
+
+		i = i + 1;	
+
+	endwhile;
+
+	breakpoint;	
+
+	if( i == 64) then
+
+		[physicalSP - 2] = -1;
+		ireturn;
+
+	endif;
+
+	basciBlock = [FAT + 8*FATindex + 2];
+
+	load( 1, basciBlock);
+
+	count = 0;
+
+	i = 0;
+
+	while ([SCRATCHPAD + i] != -1 && i < 3  ) do	
+
+		count = count + 1;
+
+		i = i + 1;
+
+	endwhile;
+
+	breakpoint;
+
+	allocCount = 0;
+
+	if( count > 3 ) then
+
+		[physicalSP - 2] = 0;
+		ireturn;
+
+	endif;
+
+	i = 0;
+
+	while(1) do
+
+		if( [PTBR + 2*i + 1] == "01" || [PTBR + 2*i + 1] == "11" ) then
+
+			allocCount = allocCount + 1;
+
+		endif;
+		
+		i = i + 1;
+
+		if( i == 3) then
+
+			break;
+
+		endif;	
+
+	endwhile;
+
+	breakpoint;
+
+	if ( allocCount > count ) then
+
+		i = allocCount - count;
+
+		j = 2;
+
+		while(i) do
+		
+			[ MEM_LIST + [PTBR + 2*j] ] = 0;
+
+			[PTBR + 2*j] = -1;
+			[PTBR + 2*j + 1] = "00";
+
+			i = i - 1;
+			j = j - 1;
+
+		endwhile;
+
+	endif;
+
+	breakpoint;
+	
+	if( count > allocCount ) then
+
+		k = 0;
+
+		while( k < 2) do
+
+			if( [PTBR + 2*k + 1] != "01" || [PTBR + 2*k + 1] != "11") then
+				
+				break;
+			
+			else
+
+				k = k + 1;
+
+			endif;	
+
+		endwhile;	
+
+		i = 29;
+
+		j = count - allocCount;
+
+		while( i < 64) do	
+
+			if( [MEM_LIST + i ] == 0) then
+
+				j = j - 1;
+
+			endif;
+
+			i = i + 1;
+
+		endwhile;	
+
+		if ( j > 0 ) then
+
+			[physicalSP - 2 ] = -1;
+			ireturn;
+
+		endif;		
+
+		i = 29;
+
+		j = count - allocCount;
+
+		while( i < 64) do	
+
+			if( [MEM_LIST + i ] == 0) then
+
+				j = j - 1; 
+
+				[ MEM_LIST + i ] = 1;
+
+				[PTBR + k*2] = i;
+
+				[PTBR + k*2 + 1] = "01";
+
+				k = k + 1;
+
+				if( j == 0) then
+
+					break;
+
+				endif;
+				
+			endif;
+		
+			i = i + 1;
+
+		endwhile;	
+
+	endif;
+
+	[PTBR + 7 ] = "01";
+
+	breakpoint;
+
+	load( 1,basciBlock);
+
+	i = 0;
+
+	while( [SCRATCHPAD + i] != -1) do
+
+		if([PTBR + 2*i] > 24) then
+
+			load( [PTBR + 2*i], [SCRATCHPAD + i] );
+
+			[PTBR + 2*i + 1] = "01";
+
+			i = i + 1;
+
+		else	
+
+			print("Error");
+
+		endif;	
+
+
+	endwhile;	
+
+	breakpoint;
+
+	currentPCB = READY_LIST + (( PTBR - PAGE_TABLE ) / 8)  * 32;
+
+	fileDescriptor = 0;
+
+	while(fileDescriptor < 8) do
+
+		if([ currentPCB + 15 + 2*fileDescriptor ] != -1) then
+
+			
+			FATindex = [ currentPCB + 15 + 2*fileDescriptor ];
+
+			[ FILE_TABLE + FATindex*2 + 1 ] = [ FILE_TABLE + FATindex*2 + 1 ] - 1;
+
+			if( [ FILE_TABLE + FATindex*2 + 1 ] == 0) then
+
+				[ FILE_TABLE + FATindex*2 ] = -1;
+
+			endif;
+
+			[ currentPCB + 15 + 2*fileDescriptor ] = -1;
+			[ currentPCB + 15 + 2*fileDescriptor + 1] = -1;
+		
+		endif;
+
+
+		fileDescriptor = fileDescriptor + 1;
+
+	endwhile;
+
+	breakpoint;
+
+	SP = 3 * 512;
+
+	physicalSP = ([PTBR + 2*(SP / 512)]) * 512 + (SP % 512);
+
+	[ physicalSP ] = 0;
+
+	breakpoint;
+
+	ireturn;
+
+endif;	
+
+
+
+
+
+
+
+
+
+
+
+
+

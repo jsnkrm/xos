@@ -1,0 +1,142 @@
+alias physicalSP S0;
+
+alias FATindex S5;
+
+alias sysCallNo S1;
+
+alias i S2;
+
+alias pageTable S6;
+
+alias freePCBindex S3;
+
+alias flag S4;
+
+alias currentPCB S7;
+
+alias count S8;
+
+alias j S9;
+
+alias newPCB S10;
+
+alias fileDescriptor S11;
+
+alias newphysicalSP S12;
+
+
+physicalSP = ([PTBR + 2*(SP / 512)]) * 512 + (SP % 512);
+
+sysCallNo = [physicalSP - 1];
+
+
+if (sysCallNo == 10) then  //---------------------------------EXIT----------------------------EXIT-------------------------------------------
+	
+	i = 0;
+
+	while( i < 32) do
+
+		if( [READY_LIST + i*32 + 1] == 1) then
+
+			break;
+
+		endif;
+
+	i = i + 1;
+		
+	endwhile;
+
+	if (i == 32) then
+
+		halt;
+
+	endif;
+
+	currentPCB = ((PTBR - PAGE_TABLE) / 8) * 32 + READY_LIST;
+
+	fileDescriptor = 0;
+
+	while(fileDescriptor < 8) do
+
+		if([ currentPCB + 15 + 2*fileDescriptor ] != -1) then
+
+			
+			FATindex = [ currentPCB + 15 + 2*fileDescriptor ];
+
+			[ FILE_TABLE + FATindex*2 + 1 ] = [ FILE_TABLE + FATindex*2 + 1 ] - 1;
+
+			if( [ FILE_TABLE + FATindex*2 + 1 ] == 0) then
+
+				[ FILE_TABLE + FATindex*2 ] = -1;
+
+			endif;
+
+			[ currentPCB + 15 + 2*fileDescriptor ] = -1;
+			[ currentPCB + 15 + 2*fileDescriptor + 1] = -1;
+		
+		endif;
+
+
+		fileDescriptor = fileDescriptor + 1;
+
+	endwhile;		
+
+	pageTable = PAGE_TABLE + [currentPCB]*8;
+
+	[currentPCB + 0] = 0;
+
+	i = 0;
+
+	while( i < 4) do
+
+		if( [pageTable + 2*i] != -1) then
+
+			[MEM_LIST + [pageTable + 2*i] ] = 0;
+
+		endif;
+
+		[pageTable + 2*i] = -1;
+		[pageTable + 2*i + 1] = "00";
+
+		i = i + 1;
+
+	endwhile;
+
+	i = [currentPCB] + 1;
+
+	while( 1 ) do
+
+		if([READY_LIST + 32*i + 1] == 1) then
+
+			newPCB = i*32 + READY_LIST;
+			break;
+
+		endif;	
+
+		i = i+1;
+
+	endwhile;	
+
+	[ newPCB + 1] = 2; // Set new PCB as running process
+	BP = [ newPCB + 2 ];
+	SP = [ newPCB + 3 ]; 
+
+	PTBR = [ newPCB + 5 ];
+	PTLR = [ newPCB + 6 ];
+
+	R0 = [ newPCB + 7 ];
+	R1 = [ newPCB + 8 ];
+	R2 = [ newPCB + 9 ];
+	R3 = [ newPCB + 10 ];
+	R4 = [ newPCB + 11 ];
+	R5 = [ newPCB + 12 ];
+	R6 = [ newPCB + 13 ];
+	R7 = [ newPCB + 14 ];
+
+	SP = SP + 1;
+	newphysicalSP = ([PTBR + 2 * (SP / 512)] * 512) + (SP % 512);
+	[ newphysicalSP ] = [ newPCB + 4 ]; // Stores IP field value of PCB on the stack 
+
+	ireturn;
+
+endif;	

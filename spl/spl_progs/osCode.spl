@@ -1,8 +1,9 @@
+alias i S0;
+
+alias counter S1;			
+
 load (7,1);               //Loading the Exception handler
 load (8,2);
-
-load (5,19);              //Loading FAT
-load (6,20);              //Loading Disk Free List
 
 load (9,3);               //Loading the Timer routine
 load (10,4);
@@ -19,8 +20,46 @@ load (16,10);
 load (17,11);             //Loading Interrupt 4 routine          
 load (18,12);
 
-load (23,17);             //Loading INterrupt 7 routine
+load (19,13);             //Loading Interrupt 5 routine          
+load (20,14);
+
+load (21,15);             //Loading Interrupt 6 routine          
+load (22,16);
+
+load (23,17);             //Loading Interrupt 7 routine
 load (24,18);
+
+load (5,19);              //Loading FAT
+load (6,20);              //Loading Disk Free List
+
+i = 0;
+
+while (i < 64) do  
+
+	if( i < 29) then
+		
+		[ MEM_LIST + i ] = 1;    // Setting mem_list as used for pages 0 - 28
+
+	else
+
+		[ MEM_LIST + i ] = 0;
+
+	endif;
+
+	i = i + 1;
+
+endwhile;	 	
+
+i = 0;
+
+while ( i < 32 ) do
+
+	[ READY_LIST + i*8 + 1 ] = 0;     // STATE field of all PCBs made 0	
+
+	i = i + 1;
+
+endwhile;	
+
 
 [READY_LIST + 0] = 0;
 
@@ -41,14 +80,15 @@ PTLR = 4;
 
 [READY_LIST + 1] = 2;
 
-alias i S1;
 
-alias counter S0;			
 counter = 0;
+
 while ( counter <  128) do			// 64 entries, each of size 2 words
+
 	[ FILE_TABLE + counter + 0] = -1;	// Set FAT Index to -1
 	[ FILE_TABLE + counter + 1] =  0;	// Set File Open Count to 0
 	counter = counter + 2;			// Move to next entry
+
 endwhile;	
 
 
@@ -61,9 +101,9 @@ while (i < 31) do
 
 endwhile;	
 
+
 SP = 3*512;
 
-[28 * 512] = 0;
-
+[ 28*512 ] = 0; // Set up the IP value for INIT in the stack
 
 ireturn;

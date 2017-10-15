@@ -1,5 +1,4 @@
-
-.decl
+decl
 	integer prime(integer x);
 enddecl
 integer prime(integer x)
@@ -34,9 +33,7 @@ integer main()
 {
 	breakpoint;
 	integer y;
-	print("Enter a num:");
-	read(y);
- 	y = prime(y);
+ 	y = prime(10);
  	return 0;
 	
 }

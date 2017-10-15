@@ -1,10 +1,12 @@
 alias currentPID S0;
+
 currentPID = (PTBR - 1024) / 8;
 
 alias currentPCB S1;
+
 currentPCB = READY_LIST + 32 * currentPID;
 
-// [ currentPCB + 1 ] = 1; // Set STATE of current process to READY
+[ currentPCB + 1 ] = 1; // Set STATE of current process to READY
 
 [ currentPCB + 2 ] = BP;
 [ currentPCB + 3 ] = SP - 1;
@@ -46,7 +48,7 @@ while (j <= 32) do
 			
 endwhile;
 
-// [ newPCB + 1] = 2; // Set new PCB as running process
+[ newPCB + 1] = 2; // Set new PCB as running process
 BP = [ newPCB + 2 ];
 SP = [ newPCB + 3 ]; 
 
